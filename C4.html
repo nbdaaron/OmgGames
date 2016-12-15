@@ -1,0 +1,305 @@
+<html>
+	<head>
+		<title>BLIND-FOUR</title>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			var socket = io('/C4');
+			socket.emit('c4', 'test message');
+
+
+			var board = document.createElement("canvas");
+			var grid = new Array(6);
+			var player1 = true;
+			var enabled = true;
+			var win =null;
+
+			for (var i=0;i<grid.length;i++) {
+				grid[i]= new Array(7);
+			}
+
+			board.width="490";
+			board.height="480";
+			
+
+
+			var context = board.getContext("2d");
+			var pieces = new Array();
+			var lastPiece = -1;
+			var currPlay= new Array();
+			
+			
+			//context.restore();
+			
+		</script>
+	</head>
+	<body style="text-align:center;" onload="dropPiece();">
+	<h1>Blind-Four</h1>
+	<h3>Test your memory and your skills! Try this Connect-Four-Like game and see if you can get four in a row! Except, there's a twist: you can't see which pieces are yours! </h3>
+		<canvas id="back" width = 490 height=480><p>Ur browser sux u can't even load da game lolz</p></canvas>
+		<h2 id="winnertext"> Player 1's turn! </h2>
+		<button id = "reset" type="submit" onclick = "resetGame();" style="display:none;width:490px;height:50px;font-size:30px;margin: auto;margin-top: 10px;">Reset Game</button>
+
+	</body>
+
+	<script>
+
+	var back = document.getElementById("back");
+	var backContext = back.getContext("2d");
+	back.addEventListener("mouseup", mouseClick, false);
+	backContext.drawImage(board,0,0);
+
+	backContext.fillStyle="white";
+	backContext.globalCompositeOperation = "destination-over";
+	backContext.fillRect(0, 0, 490, 480);
+
+	function play(colo, colu, row) {
+		pieces[++lastPiece] = {
+			col: colo,		//For yellow versus green (REGULAR CONNECT-FOUR)
+			p: (player1?1:2),
+			//col: "blue",		//For blue versus blue (BLIND FOUR)
+			c: parseInt(colu),
+			r: parseInt(row), 
+			y: 0
+		};
+		//console.log(colo + " " + colu + " " + row);
+		grid[parseInt(row)][parseInt(colu)] = colo;
+		currPlay[currPlay.length] = setInterval(dropPiece, 20);
+		win = checkWin(colo, parseInt(colu), parseInt(row));
+
+		
+	}
+
+	function checkWin(color, col, row) {
+		var win = false;
+		//CHECK VERTICAL ROW
+		var count=0;
+		for (var i=0;i<grid.length;i++) {
+			if (grid[i][col] == color) count++;
+			else count=0;
+			if (count>=4) return {
+				type: "vertical",
+				c: color,
+				fromc: col,
+				toc: col,
+				fromr: i,
+				tor: i-3
+			};
+		}
+
+		//CHECK HORIZONTAL ROW
+		count = 0;
+		for (var i=0;i<grid[0].length;i++) {
+			if (grid[row][i] == color)count++;
+			else count=0;
+			if(count>=4) return {
+				type: "horizontal",
+				c: color,
+				fromc: i-3,
+				toc: i,
+				fromr: row,  
+				tor: row
+			};
+		}
+
+		count = 0;
+		var startc=col, startr=row;
+		while (startc>0 && startr > 0) {
+			startc--;
+			startr--;
+		}
+		//console.log(startc + " " + startr);
+		while (startc<grid[0].length && startr < grid.length) {
+			if (grid[startr][startc] == color) count++;
+			else count=0;
+			if (count >= 4) return {
+				type: "d1",
+				c: color,
+				fromc: startc-3,
+				toc: startc,
+				fromr: startr-3,
+				tor: startr
+			}
+			startr++;
+			startc++;
+			//console.log(startc + " " + startr);
+		}
+
+		count=0;
+		startc=col, startr=row;
+		while (startc<grid[0].length-1 && startr > 0) {
+			startc++;
+			startr--;
+		}
+		//console.log(startc + " " + startr);
+		while (startc>=0 && startr < grid.length) {
+			if (grid[startr][startc] == color) count++;
+			else count=0;
+			if (count >= 4) return {
+				type: "d2",
+				c: color,
+				fromc: startc+3,
+				toc: startc,
+				fromr: startr-3,
+				tor: startr
+			}
+			startr++;
+			startc--;
+			//console.log(startc + " "+ startr);
+		}
+
+		for (var i=0;i<grid.length;i++) {
+			for (var j=0;j<grid[0].length;j++) {
+				if (grid[i][j]==null)
+					return null;
+			}
+		}		
+
+		return "tie";
+
+	}
+
+	function winner(stats) {
+		enabled = false;
+		document.getElementById("reset").style.display = "block";
+		if (stats == "tie") {
+			document.getElementById("winnertext").innerHTML = "It's a tie!";
+			document.getElementById("winnertext").style.display = "block";
+			reveal();
+		}
+		else {
+			drawLine(stats.fromc, stats.fromr, stats.toc, stats.tor);	
+			document.getElementById("winnertext").innerHTML = "Player " + (player1?"2":"1") + " is the winner!";
+			document.getElementById("winnertext").style.display = "block";
+			reveal();
+		}
+
+	}
+
+	function reveal() {
+		for (var i=0;i<=lastPiece;i++) {
+			if (pieces[i].p==1) pieces[i].col = "orange";
+			else if (pieces[i].p==2) pieces[i].col = "green";
+		}
+		dropPiece();
+	}
+
+	function dropPiece() {
+		backContext.clearRect(0, 0, back.width, back.height);
+		backContext.drawImage(board, 0, 0);
+		if (lastPiece>=0 && pieces[lastPiece].y>=board.height/12+board.height/6*pieces[lastPiece].r) {
+			pieces[lastPiece].y = board.height/12+board.height/6*pieces[lastPiece].r;
+			for (var i=0;i<=lastPiece;i++) {
+				backContext.fillStyle = pieces[i].col;
+				backContext.beginPath();
+				backContext.arc(board.width/14 + board.width/7*pieces[i].c, board.height/12 + board.height/6*pieces[i].r, 30, 0, 2*Math.PI, true);
+				backContext.closePath();
+				backContext.fill();
+			}
+			for (var i=0;i<currPlay.length;i++) {
+				clearInterval(currPlay[i]);
+			}
+			if (win != null) {
+				var a = win;
+				win = null;
+				winner(a); 
+			}
+
+			return;
+		}
+		else if (lastPiece >= 0) {
+			for (var i=0;i<lastPiece;i++) {
+				backContext.fillStyle = pieces[i].col;
+				backContext.beginPath();
+				backContext.arc(board.width/14 + board.width/7*pieces[i].c, board.height/12 + board.height/6*pieces[i].r, 30, 0, 2*Math.PI, true);
+				backContext.closePath();
+				backContext.fill();
+			}
+			backContext.fillStyle = pieces[lastPiece].col;
+			backContext.beginPath();
+			backContext.arc(board.width/14 + board.width/7*pieces[i].c, pieces[lastPiece].y, 30, 0, 2*Math.PI, true);
+			pieces[lastPiece].y += 10;
+			backContext.closePath();
+			backContext.fill();
+		}
+	}
+
+	function getCursorPosition(canvas, event) {
+	    var rect = canvas.getBoundingClientRect();
+	    var x = event.clientX - rect.left;
+	    var y = event.clientY - rect.top;
+	    //console.log("x: " + x + " y: " + y);
+	    return {
+	    	x: x,
+	    	y: y
+	    };
+	}
+
+	function getColFromPos(pos) {
+		var colWidth = board.width/7;
+		if (pos.x == board.width) return 6;
+		return (pos.x/colWidth);
+	}
+
+	function mouseClick(event) {
+		if (!enabled) return;
+		var col = getColFromPos(getCursorPosition(back, event));
+		for (var i=grid.length-1;i>=0;i--) {
+			if (grid[parseInt(i)][parseInt(col)] == null){
+				//console.log("col: " + col + " row: " + i);
+				play(player1?"yellow":"green", col, i);
+				player1 = !player1;
+				document.getElementById("winnertext").innerHTML = "Player " + (player1?"1":"2") + "'s turn!";
+				return;
+			}
+		}
+	}
+
+	function drawLine(startc, startr, endc, endr) {
+		context.globalCompositeOperation="source-over";
+		context.strokeStyle="red";
+		context.lineWidth = 8;
+		context.beginPath();
+		context.moveTo(board.width/14+board.width/7*startc, board.height/12+board.height/6*startr);
+		context.lineTo(board.width/14+board.width/7*endc, board.height/12+board.height/6*endr);
+		context.closePath();
+		context.stroke();
+		dropPiece();
+			return;
+	}
+
+	function resetGame() {
+		document.getElementById("reset").style.display = "none";
+		document.getElementById("winnertext").innerHTML = "Player " + (player1?"1":"2") + "'s turn!";
+		//document.getElementById("winnertext").style.display = "none";
+		enabled = true;
+		context.clearRect(0,0,board.width, board.height);
+		context.fillStyle="grey";
+		context.globalCompositeOperation="source-over";
+		context.fillRect(0, 0, 490, 480);
+		context.globalCompositeOperation = 'destination-out';
+		context.fillStyle="rgba(0,0,0,1)";
+		context.beginPath();
+		for (var col=0;col<7;col++) {
+			for (var row=0;row<6;row++) {
+				context.arc(board.width/14 + board.width/7*col, board.height/12 + board.height/6*row, 30, 0, 2*Math.PI, true);
+			}
+			context.closePath();
+			context.fill();
+			context.beginPath();
+		}
+		context.closePath();
+		context.fill();
+		pieces = new Array();
+		lastPiece = -1;
+		grid = new Array(6);
+		for (var i=0;i<grid.length;i++) {
+			grid[i]= new Array(7);
+		}
+		dropPiece();
+	}
+
+	dropPiece();
+	resetGame();
+	
+	</script>
+</html>
