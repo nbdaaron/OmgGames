@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>Game Lobby! </title>
+</head>
+<body style="text-align:center;">
+<h1 id="title">Loading...</h1>
+<h1 id="stats" style="display:none;"></h1>
+<h1>What would you like to do?</h1>
+<button id = "reset" type="submit" onclick = "newGame();" style="width:490px;height:50px;font-size:30px;margin: auto;margin-top: 10px;">Create New Game</button>
+<button id = "reset" type="submit" onclick = "joinGame();" style="width:490px;height:50px;font-size:30px;margin: auto;margin-top: 10px;">Join Game with Existing ID</button>
+
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+var socket = io('/C4Lobby');
+var userid = getCookie("userid");
+if (userid == "") {
+	socket.emit('generateUser', '');
+}
+else{
+	document.getElementById("title").innerHTML = "Welcome, " + userid + ", to Connect Four!!!";
+	socket.emit("getStats", userid);
+}
+
+socket.on("userMade", function(msg, io) {
+	userid = msg;
+	document.cookie="userid=" + userid;
+	document.getElementById("title").innerHTML = "Welcome, " + userid + ", to Connect Four!!!";
+	socket.emit("getStats", userid);
+});
+
+socket.on("stats", function(msg, io) {
+	document.getElementById("stats").innerHTML = "Wins: " + msg.wins + ", Losses: " + msg.losses + ", Ties: " + msg.ties;
+	document.getElementById("stats").style.display="block";
+});
+
+
+function newGame() {
+
+}
+function joinGame() {
+
+}
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+</script>
+</html>

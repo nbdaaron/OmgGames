@@ -20,7 +20,8 @@ app.use(express.static('static'));
 
   var C4IO = io.of('/C4');
   C4IO.on('connection', C4.on);
-
+  var C4LobbyIO = io.of('/C4Lobby');
+  C4LobbyIO.on('connection', C4.lobbyOn);
 
 
 
