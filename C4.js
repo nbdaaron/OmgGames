@@ -20,7 +20,9 @@ module.exports = {
 	},
 
 	lobbyOn: function(socket) {
-		socket.on('disconnect', disconnected);
+		socket.on('disconnect', function(msg, io) {
+			disconnected(msg, io, socket);
+		});
 		socket.on('generateGame', generateGame);
 		socket.on('generateUser', 	function(msg, io) {
 			generateUser(msg, io, socket);
@@ -38,6 +40,7 @@ module.exports = {
 			index.conn.query('Select * from users where username = "' + msg + '";', function(error, results, fields) {
 				if (results[0] != null) {
 					users[msg] = {
+						socket: socket,
 						id: results[0].id,
 						name: results[0].username,
 						guest: false,
@@ -97,8 +100,16 @@ function userExists(id) {
 	return users[id] != null;
 }
 
-function disconnected(msg) {
-	//console.log("User disconnected");
+function disconnected(msg, io, socket) {
+		for (var property in users) {
+		    if (users.hasOwnProperty(property)) {
+		        if (users[property].socket == socket) {
+		        	//console.log(users[property].name + " has disconnected from the server.");
+		        	save(users[property].name, io, socket);
+		        	delete users[property];
+		        }
+		    }
+		}
 }
 
 function newRoom(p1) {
@@ -120,6 +131,7 @@ function generateUser(msg, io, socket) {
 	} while (userExists(id));
 
 	users[id] = {
+		socket: socket,
 		id: -1,
 		name: id,
 		guest: true,
@@ -143,6 +155,14 @@ function getStats(msg, io, socket) {
 }
 
 function save(msg, io, socket) {
+	if (userExists(msg)) {
+		index.conn.query('update stats set wins='+users[msg].wins+', losses='+users[msg].losses+', ties='+users[msg].ties+' where userid = ' + users[msg].id + ';', function(err, result) {
+					if (err) console.log(err);
+		});
+	}
+}
+
+function saveAll(msg, io, socket) {
 	if (userExists(msg) && users[msg].gm>0) {
 		for (var property in users) {
 		    if (users.hasOwnProperty(property)) {
