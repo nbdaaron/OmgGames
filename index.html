@@ -19,7 +19,8 @@ if (userid == "") {
 }
 else{
 	document.getElementById("title").innerHTML = "Welcome, " + userid + ", to Connect Four!!!";
-	socket.emit("getStats", userid);
+	socket.emit("enterUser", userid);
+	//socket.emit("getStats", userid);
 }
 
 socket.on("userMade", function(msg, io) {

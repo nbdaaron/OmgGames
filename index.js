@@ -1,10 +1,38 @@
+var mysql      = require('mysql');
+var connection = mysql.createConnection({
+  host     : '85.10.205.173',
+  port 	   : '3307',
+  user     : 'aaronkau',
+  password : /*Obscured...*/																																	'dy3lwiexuga',
+  database : 'omggames'
+});
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var currID = 1;
+
+module.exports = {
+	conn: connection,
+};
+
+
 var C4 = require('./C4');
 
-var currID = 1;
+
+
+
+connection.connect(function(err) {
+  if (err) {
+    console.error('error connecting: ' + err.stack);
+    return;
+  }
+
+  console.log('connected as id ' + connection.threadId);
+});
+
+
+
 
 app.get('/', function(req, res){
   res.sendFile(__dirname+'/index.html');
