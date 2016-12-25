@@ -12,11 +12,11 @@ module.exports = {
 	handle: function(req, res, io) {
 		var gameID = req.query.gameID;
 		if (req.query.gameID == null) {
-			response.writeHead(302, {
+			res.writeHead(302, {
 			  'Location': '/'
 			  //add other headers here...
 			});
-			response.end();
+			res.end();
 			return;
 		}
 
@@ -26,6 +26,7 @@ module.exports = {
 		//console.log(index);
 		//index.a();
 		res.sendFile(__dirname+'/C4.html');
+		//console.log(games[gameID]);
 
 	},
 
@@ -52,6 +53,7 @@ module.exports = {
 		});
 
 		socket.on('enterUser', function enterUser(msg, io) {
+			console.log(users);
 			if (userExists(msg)) {
 				getStats(msg, io, socket);
 				return;
@@ -69,6 +71,8 @@ module.exports = {
 						gm: results[0].gm
 					};
 					updateStats(results[0].id, msg, io, socket);
+					console.log(msg);
+					//console.log(users);
 				}
 				else {
 					generateUser(msg, io, socket);
@@ -97,34 +101,41 @@ function generateGame(gameid) {
 		pw: null
 	};
 	for (var i=0;i<6;i++) {
-		grid[i] = new Array(7);
+		games[gameid].grid[i] = new Array(7);
 	}
 }
 
 function enterGame(msg, io, socket) {
+	//console.log(socket);
+	console.log("Enter Game Called");
 	var gameid = msg.gameid;
 	var pw = msg.pw;
-	var user = getUserBySocket(socket);
+	var user = users[msg.user];
 	if (games[gameid] == null) {
+		console.log("Game is null");
 		socket.emit("noGame", ""); //Shouldn't happen since game auto-generates if it doesn't exist.
 		return;
 	}
 	else if (user == null) {
+		console.log("User is null");
 		socket.emit("noUser", ""); //Shoudln't happen since page auto-generates guest accounts for guests.
 		return;
 	}
 	else if (games[gameid].pw != pw) {
+		console.log("Password is wrong");
 		socket.emit("wrongPass", "");
 		return;
 	}
 	var p1 = games[gameid].p1;
 	var p2 = games[gameid].p2;
-	if (p1 == null) {
+	//console.log(p1);
+	//console.log(p2);
+	if (p1 == null && p2 != user) {
 		games[gameid].p1 = user;
 		socket.emit("entered", 1);
 		return;
 	}
-	else if (p2 == null) {
+	else if (p2 == null && p1 != user) {
 		games[gameid].p2 = user;
 		socket.emit("entered", 2);
 		return;
@@ -159,9 +170,13 @@ function updateStats(userID,username,io, socket) {
 
 
 function userExists(id) {
-	console.log(id);
-	console.log(users);
+	//console.log(id);
+	//console.log(users);
 	//console.log(users[id]);
+	if (users[id] != null)
+		console.log(users[id].wins);
+	else
+		console.log("undefined");
 	return users[id] != null;
 }
 
@@ -171,7 +186,7 @@ function disconnected(msg, io, socket) {
 		        if (users[property].socket == socket) {
 		        	//console.log(users[property].name + " has disconnected from the server.");
 		        	save(users[property].name, io, socket);
-		        	delete users[property];
+		        	//delete users[property];
 		        }
 		    }
 		}
@@ -245,6 +260,8 @@ function saveAll(msg, io, socket) {
 function getUserBySocket(socket) {
 		for (var property in users) {
 	    if (users.hasOwnProperty(property)) {
+	    	console.log(users[property].socket);
+	    	console.log(" --------- ");
 	        if (users[property].socket == socket) {
 	        	return users[property];
 	        }
