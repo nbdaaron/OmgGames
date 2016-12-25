@@ -10,20 +10,39 @@ var users = new Array();
 module.exports = {
 
 	handle: function(req, res, io) {
-		console.log(index);
-		index.a();
+		var gameID = req.query.gameID;
+		if (req.query.gameID == null) {
+			response.writeHead(302, {
+			  'Location': '/'
+			  //add other headers here...
+			});
+			response.end();
+			return;
+		}
+
+		if (games[gameID] == null) {
+			generateGame(gameID);
+		}
+		//console.log(index);
+		//index.a();
 		res.sendFile(__dirname+'/C4.html');
+
 	},
 
 	on: function(socket){
-		socket.on('disconnect', disconnected);
+		socket.on('disconnect', function(msg, io) {
+			disconnected(msg, io, socket);
+		});
+		socket.on('enterGame', function(msg, io) {
+			enterGame(msg, io, socket);
+		});
 	},
 
 	lobbyOn: function(socket) {
 		socket.on('disconnect', function(msg, io) {
 			disconnected(msg, io, socket);
 		});
-		socket.on('generateGame', generateGame);
+
 		socket.on('generateUser', 	function(msg, io) {
 			generateUser(msg, io, socket);
 		});
@@ -68,8 +87,54 @@ function received(msg, io) {
 	console.log(msg);
 }
 
-function generateGame(msg, io) {
-	
+function generateGame(gameid) {
+	games[gameid] = {
+		id: gameid,
+		p1: null,
+		p2: null,
+		spectators: new Array(),
+		grid: new Array(6),
+		pw: null
+	};
+	for (var i=0;i<6;i++) {
+		grid[i] = new Array(7);
+	}
+}
+
+function enterGame(msg, io, socket) {
+	var gameid = msg.gameid;
+	var pw = msg.pw;
+	var user = getUserBySocket(socket);
+	if (games[gameid] == null) {
+		socket.emit("noGame", ""); //Shouldn't happen since game auto-generates if it doesn't exist.
+		return;
+	}
+	else if (user == null) {
+		socket.emit("noUser", ""); //Shoudln't happen since page auto-generates guest accounts for guests.
+		return;
+	}
+	else if (games[gameid].pw != pw) {
+		socket.emit("wrongPass", "");
+		return;
+	}
+	var p1 = games[gameid].p1;
+	var p2 = games[gameid].p2;
+	if (p1 == null) {
+		games[gameid].p1 = user;
+		socket.emit("entered", 1);
+		return;
+	}
+	else if (p2 == null) {
+		games[gameid].p2 = user;
+		socket.emit("entered", 2);
+		return;
+	}
+	else {
+		games[gameid].spectators[games[gameid].spectators.length] = user;
+		socket.emit("entered", 3);
+		return;
+	}
+
 }
 
 function updateStats(userID,username,io, socket) {
@@ -175,4 +240,15 @@ function saveAll(msg, io, socket) {
 		    }
 		}
 	}
+}
+
+function getUserBySocket(socket) {
+		for (var property in users) {
+	    if (users.hasOwnProperty(property)) {
+	        if (users[property].socket == socket) {
+	        	return users[property];
+	        }
+	    }
+	}
+	return null;
 }

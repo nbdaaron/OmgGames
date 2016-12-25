@@ -4,7 +4,10 @@
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
 			var socket = io('/C4');
-			socket.emit('c4', 'test message');
+			socket.emit("enterGame", {
+				gameid: //asdfasf,
+				pw: pw
+			});
 
 
 			var board = document.createElement("canvas");
